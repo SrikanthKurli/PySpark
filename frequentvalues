@@ -1,0 +1,56 @@
+# How to keep only top 2 most frequent values as it is and replace everything else as ‘Other’?
+
+from pyspark.sql import SparkSession, Row
+from pyspark.sql.functions import col, when
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("JobTransformation").getOrCreate()
+
+# Sample data
+data = [
+    Row(name='John', job='Engineer'),
+    Row(name='John', job='Engineer'),
+    Row(name='Mary', job='Scientist'),
+    Row(name='Bob', job='Engineer'),
+    Row(name='Bob', job='Engineer'),
+    Row(name='Bob', job='Scientist'),
+    Row(name='Sam', job='Doctor'),
+]
+
+# Create DataFrame
+df = spark.createDataFrame(data)
+df.show()
+
+# Group by 'job' and count occurrences
+job_counts = df.groupBy("job").count()
+job_counts.show()
+
+# Get the top 2 most frequent jobs
+top_jobs_df = job_counts.orderBy(col("count").desc()).limit(2)
+top_jobs = [row['job'] for row in top_jobs_df.collect()]
+print(top_jobs)
+
+# Transform the 'job' column
+df_transformed = df.withColumn(
+    "job",
+    when(col("job").isin(top_jobs), col("job")).otherwise("Other")
+)
+df_transformed.show()
+
+########  This is the code I have Written  ###
+
+df = spark.createDataFrame(data)
+df.createOrReplaceTempView("All")
+
+sorted_df = df.groupBy("job").count()
+
+sorted_df.createOrReplaceTempView("Job")
+
+%sql
+select  
+  name,
+  case 
+    when Job IN (select Job from Job limit 2) then Job 
+    else 'Other'
+  end as Job
+from All
