@@ -1,0 +1,33 @@
+''' To find the duplicates in the dataframe '''
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import count, col
+
+# Initialize Spark session
+spark = SparkSession.builder.appName("DuplicateCountExample").getOrCreate()
+
+
+#df.distinct().show()  -- distinct check for duplicates in all columns
+
+data = [("James","","Smith","36636","M",60000),
+        ("James","Rose","","40288","M",70000),
+        ("Robert","","Williams","42114","",400000),
+        ("Maria","Anne","Jones","39192","F",500000),
+        ("Maria","Mary","Brown","","F",0)]
+
+columns = ["first_name","middle_name","last_name","dob","gender","salary"]
+df = spark.createDataFrame(data = data, schema = columns)
+df.printSchema()
+df.show(truncate=False)
+
+# agg group the similar data and perform multiple operations like count, sum.
+# Without agg only single operation can perform.
+'''df.groupBy('first_name').agg(
+    count('first_name').alias("count_duplicates"),
+    sum('salary').alias("total_salary"),
+    avg('salary').alias("avg_salary")
+).filter(col('count_duplicates') >= 2).show() '''
+
+df.groupBy('first_name').count().filter(col('count') >= 2).show() 
+
+df.dropDuplicates(['first_name']).show()
